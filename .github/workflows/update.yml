@@ -1,0 +1,34 @@
+name: Update bin calendar
+
+on:
+  schedule:
+    - cron: "17 5 * * *"   # daily, ~5am UK
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build calendar
+        env:
+          UPRN: ${{ secrets.UPRN }}
+        run: python make_ics.py
+      - name: Commit if changed
+        run: |
+          if [ -n "$(git status --porcelain bins.ics)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+            git add bins.ics
+            git commit -m "Update bin calendar"
+            git push
+          else
+            echo "No changes"
+          fi
